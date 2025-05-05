@@ -38,8 +38,21 @@ entity controller_fsm is
 end controller_fsm;
 
 architecture FSM of controller_fsm is
+    type state_type is (S0, S1, S2, S3);
+    signal f_Q, f_Qn    :   state_type;
 
 begin
+
+    f_Qn    <=  f_Q     when i_adv = '0' else
+                state_type'succ(f_Q)    when (i_adv = '1')  else
+                f_Q;
+                
+    with f_Q select
+    o_cycle <=  "0001" when S0,
+                "0010" when S1,
+                "0100" when S2,
+                "1000" when S3,
+                "0000" when others;
 
 
 end FSM;
