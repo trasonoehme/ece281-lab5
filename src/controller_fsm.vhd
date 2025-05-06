@@ -53,6 +53,17 @@ begin
                 "0100" when S2,
                 "1000" when S3,
                 "0000" when others;
+                
+                
+---Processes--------------------------------------------------------           
 
+    register_proc   : process(i_adv, i_reset)
+    begin
+        if i_reset = '1' then
+            f_Q <= S0;
+        elsif (rising_edge(i_adv)) then
+            f_Q <= f_Qn;
+        end if;
+    end process register_proc;
 
 end FSM;

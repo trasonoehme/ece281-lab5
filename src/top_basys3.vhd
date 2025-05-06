@@ -52,6 +52,7 @@ architecture top_basys3_arch of top_basys3 is
 	signal w_cycle     : std_logic_vector(3 downto 0);
 	signal w_A         : std_logic_vector(7 downto 0);
 	signal w_B         : std_logic_vector(7 downto 0);
+	signal w_flags     : std_logic_vector(3 downto 0);
 	signal w_result    : std_logic_vector(7 downto 0);
 	signal w_bin       : std_logic_vector(7 downto 0);
 	signal w_sign      : std_logic;
@@ -61,7 +62,9 @@ architecture top_basys3_arch of top_basys3 is
 	signal w_data      : std_logic_vector(3 downto 0);
 	signal w_sel       : std_logic_vector(3 downto 0);
 	signal w_7SD_seg   : std_logic_vector(6 downto 0);
-	signal w_seg       : std_logic_vector(6 downto 0); 
+	signal w_seg       : std_logic_vector(6 downto 0);
+	signal w_ff1       : std_logic_vector(7 downto 0);
+	signal w_ff2       : std_logic_vector(7 downto 0); 
 	
 	component twos_comp is
     port (
@@ -121,6 +124,7 @@ architecture top_basys3_arch of top_basys3 is
 begin
 	-- PORT MAPS ----------------------------------------
     clk_inst    : clock_divider
+    generic map (k_DIV => 50000)
     port map(
         i_clk   => clk,
         i_reset => btnU,
@@ -140,7 +144,7 @@ begin
         i_B         => w_B,
         i_op        => sw(2 downto 0),
         o_result    => w_result,
-        o_flags     => led(15 downto 12)
+        o_flags     => w_flags
         );
      
     -----MUX------
@@ -155,10 +159,11 @@ begin
         );
         
     TDM_inst    : TDM4
+    generic map(k_WIDTH => 4)
     port map(
         i_clk   => w_clk,
         i_reset => btnU,
-        i_D3    => w_sign,
+        i_D3    => "0000",  ---replace value with something else
         i_D2    => w_hund,
         i_D1    => w_tens,
         i_D0    => w_ones,
@@ -175,32 +180,30 @@ begin
     
 	
 	-- CONCURRENT STATEMENTS ----------------------------
-	w_bin     <= w_A       when w_cycle = "0010" else
-	             w_B       when w_cycle = "0100" else
-	             w_result  when w_cycle = "1000" else
-	             x"00";
+	w_A     <= sw(7 downto 0) when w_cycle = "0010" else
+	             w_ff1;
 	             
-	w_seg <=   "01111111" when ((w_sign = '1') and (w_sel(3) = '0')) else
-	           "11111111" when ((w_sign = '0') and (w_sel(3) = '0')) else
+	w_B     <= sw(7 downto 0) when w_cycle = "0100" else
+	             w_ff2;
+	             
+	with w_cycle select            
+	w_bin     <= w_A       when "0010",
+	             w_B       when "0100",
+	             w_result    when others;
+	             
+	w_seg <=   "0111111" when ((w_sign = '1') and (w_sel(3) = '0')) else
+	           "1111111" when ((w_sign = '0') and (w_sel(3) = '0')) else
 	           w_7SD_seg;
 	
     an <=   "1111" when w_cycle = "0001" else
             w_sel;
-            
+    
+    seg(6 downto 0) <= w_seg;
     led(3 downto 0) <= w_cycle;
+    led(3 downto 0) <= w_cycle;
+    led(15 downto 12) <= w_flags;
     led(11 downto 4) <= (others => '0');
 	-- PROCESSES ----------------------------------------
-	
-	register_A : process(w_cycle(1))
-	begin
-        if rising_edge(i_clk) then
-           if i_reset = '1' then
-               current_floor <= floor2;
-           else
-                current_floor <= next_floor;
-            end if;
-        end if;
-	end process register_A;
 	
 	
 end top_basys3_arch;
